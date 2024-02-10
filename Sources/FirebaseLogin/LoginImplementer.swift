@@ -9,11 +9,17 @@ import Foundation
 
 // MARK: - LoginEngine
 public protocol LoginService: AnyObject {
-    func login(email: String, password: String) async -> Result<AuthUser, LoginError>
+    func getLoggedInUser() async -> Result<AuthUser, LoginError>
+
     func createAccount(email: String, password: String) async -> Result<AuthUser, LoginError>
+
     func updateUserDetails(forUserId uid: String, details: [String: AnyHashable]) async -> Bool
+
+    func login(email: String, password: String) async -> Result<AuthUser, LoginError>
     func signInWithApple() async -> Result<AuthUser, LoginError>
     func signInWithGoogle() async -> Result<AuthUser, LoginError>
+
+    func logOut() throws
 }
 
 // MARK: - FirebaseLoginImp
@@ -41,5 +47,13 @@ public final class LoginImplementer: LoginService {
 
     public func signInWithGoogle() async -> Result<AuthUser, LoginError> {
         await loginEngine.signInWithGoogle()
+    }
+
+    public func getLoggedInUser() async -> Result<AuthUser, LoginError> {
+        await loginEngine.getLoggedInUser()
+    }
+
+    public func logOut() throws {
+        try loginEngine.logOut()
     }
 }

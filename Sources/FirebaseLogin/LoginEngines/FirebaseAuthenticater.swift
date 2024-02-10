@@ -10,12 +10,16 @@ import FirebaseAuth
 
 // MARK: - LoginEngine
 public protocol LoginEngine: AnyObject {
+    func getLoggedInUser() async -> Result<AuthUser, LoginError>
+
     func login(email: String, password: String) async -> Result<AuthUser, LoginError>
     func signInWithGoogle() async -> Result<AuthUser, LoginError>
     func signInWithApple() async -> Result<AuthUser, LoginError>
 
     func createAccount(email: String, password: String) async -> Result<AuthUser, LoginError>
     func updateUserDetails(forUserId uid: String, userDetails: [String: AnyHashable]) async -> Bool
+
+    func logOut() throws
 }
 
 // MARK: - FirebaseLoginImp
@@ -38,6 +42,29 @@ public final class FirebaseLoginImp: LoginEngine {
             print(user ?? "No User found")
         }
     }
+    
+    public func getLoggedInUser() async -> Result<AuthUser, LoginError> {
+        guard let user = loggedInUser else {
+            return .failure(.userNotFound)
+        }
+        do {
+            try await user.reload()
+            let model = AuthUser(userId: user.uid, emailId: user.email ?? "",
+                                 refreshToken: user.refreshToken ?? "",
+                                 newUser: false,
+                                 provider: user.providerType,
+                                 createdDate: user.metadata.creationDate,
+                                 signedInDate: user.metadata.lastSignInDate)
+            return .success(model)
+        } catch {
+            return .failure(.userNotFound)
+        }
+    }
+
+    private var loggedInUser: User? {
+        Auth.auth().currentUser
+    }
+
     // TODO: - Move this to different class
     public func createAccount(email: String, password: String) async -> Result<AuthUser, LoginError> {
         guard isValidEmail(email) else {
@@ -49,6 +76,9 @@ public final class FirebaseLoginImp: LoginEngine {
 
         do {
             let dataResult = try await Auth.auth().createUser(withEmail: email, password: password)
+            if dataResult.user.isEmailVerified == false {
+                try await dataResult.user.sendEmailVerification()
+            }
             let model = AuthUser(userId: dataResult.user.uid, emailId: dataResult.user.email ?? email,
                                  refreshToken: dataResult.user.refreshToken ?? "",
                                  newUser: dataResult.additionalUserInfo?.isNewUser ?? false,
@@ -92,7 +122,7 @@ public final class FirebaseLoginImp: LoginEngine {
             case .google:
                 cred = GoogleAuthProvider.credential(withIDToken: authCred.idTokenString,
                                                      accessToken: authCred.accessToken)
-            case .password:
+            case .password, .unknown:
                 return .failure(.loginNotSupported)
             }
             let dataResult = try await Auth.auth().signIn(with: cred)
@@ -117,7 +147,7 @@ public final class FirebaseLoginImp: LoginEngine {
         }
     }
 
-    func logOut() throws {
+    public func logOut() throws {
         try Auth.auth().signOut()
     }
 }
@@ -165,5 +195,21 @@ extension FirebaseLoginImp {
         let imp = GoogleLoginProviderImp()
         let result: Result<AuthUser, LoginError> = await imp.login(email: email, password: password)
         return result
+    }
+}
+
+// MARK: - User
+extension User {
+    var providerType: Provider {
+        switch providerID {
+        case "password":
+            return .password
+        case "google.com":
+            return .google
+        case "apple.com":
+            return .apple
+        default:
+            return .unknown
+        }
     }
 }

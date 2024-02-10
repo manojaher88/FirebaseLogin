@@ -11,6 +11,7 @@ public enum Provider: String, Decodable {
     case apple = "Apple"
     case google = "Google"
     case password = "Password"
+    case unknown = "Unknown"
 }
 
 struct LoginCredential {
