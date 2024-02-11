@@ -11,14 +11,10 @@ import FirebaseAuth
 // MARK: - LoginEngine
 public protocol LoginEngine: AnyObject {
     func getLoggedInUser() async -> Result<AuthUser, LoginError>
-
-    func login(email: String, password: String) async -> Result<AuthUser, LoginError>
-    func signInWithGoogle() async -> Result<AuthUser, LoginError>
-    func signInWithApple() async -> Result<AuthUser, LoginError>
-
+    func signIn() async -> Result<AuthUser, LoginError>
+    func signIn(email: String, password: String) async -> Result<AuthUser, LoginError>
     func createAccount(email: String, password: String) async -> Result<AuthUser, LoginError>
     func updateUserDetails(forUserId uid: String, userDetails: [String: AnyHashable]) async -> Bool
-
     func logOut() throws
 }
 
@@ -26,8 +22,14 @@ public protocol LoginEngine: AnyObject {
 public final class FirebaseLoginImp: LoginEngine {
     private var handler: AuthStateDidChangeListenerHandle?
     private var stateListener: AuthStateDidChangeListenerHandle?
+    private let loginProvider: LoginProvider
 
-    public init() {
+    private var loggedInUser: User? {
+        Auth.auth().currentUser
+    }
+
+    public init(loginProvider: LoginProvider) {
+        self.loginProvider = loginProvider
         setupObservations()
     }
 
@@ -42,7 +44,10 @@ public final class FirebaseLoginImp: LoginEngine {
             print(user ?? "No User found")
         }
     }
-    
+}
+
+// MARK: - Reterive LoggedIn User
+extension FirebaseLoginImp {
     public func getLoggedInUser() async -> Result<AuthUser, LoginError> {
         guard let user = loggedInUser else {
             return .failure(.userNotFound)
@@ -60,12 +65,10 @@ public final class FirebaseLoginImp: LoginEngine {
             return .failure(.userNotFound)
         }
     }
+}
 
-    private var loggedInUser: User? {
-        Auth.auth().currentUser
-    }
-
-    // TODO: - Move this to different class
+// MARK: - Create account
+extension FirebaseLoginImp {
     public func createAccount(email: String, password: String) async -> Result<AuthUser, LoginError> {
         guard isValidEmail(email) else {
             return .failure(.invalidEmail)
@@ -98,19 +101,7 @@ public final class FirebaseLoginImp: LoginEngine {
             }
         }
     }
-    // TODO: - Move this to different class
-    public func updateUserDetails(forUserId uid: String, userDetails: [String: AnyHashable]) async -> Bool {
-//        let firestore = Firestore.firestore()
-//        do {
-//            try await firestore.collection("user").document(uid).setData(userDetails, merge: true)
-//            return true
-//        } catch {
-//            return false
-//        }
-        false
-    }
 
-    // TODO: - Move this to different class
     private func signIn(with authCred: LoginCredential) async -> Result<AuthUser, LoginError> {
         do {
             var cred: AuthCredential
@@ -146,10 +137,6 @@ public final class FirebaseLoginImp: LoginEngine {
             }
         }
     }
-
-    public func logOut() throws {
-        try Auth.auth().signOut()
-    }
 }
 
 // MARK: - Private utility methods
@@ -162,54 +149,46 @@ extension FirebaseLoginImp {
     }
 }
 
-// MARK: - Delete later
+// MARK: - Update user details
 extension FirebaseLoginImp {
-    public func signInWithApple() async -> Result<AuthUser, LoginError> {
-        let imp = AppleLoginProviderImp()
-        let result = await imp.login()
-        switch result {
-        case .success(let cred):
-            return await signIn(with: cred)
-        case .failure(let error):
-            return .failure(error)
-        }
+    // TODO: - Move this to different class
+    public func updateUserDetails(forUserId uid: String, userDetails: [String: AnyHashable]) async -> Bool {
+        //        let firestore = Firestore.firestore()
+        //        do {
+        //            try await firestore.collection("user").document(uid).setData(userDetails, merge: true)
+        //            return true
+        //        } catch {
+        //            return false
+        //        }
+        false
     }
 }
 
-extension FirebaseLoginImp {
-    public func signInWithGoogle() async -> Result<AuthUser, LoginError> {
-        let imp = GoogleLoginProviderImp()
-        let result = await imp.login()
-        switch result {
-        case .success(let cred):
-            return await signIn(with: cred)
-        case .failure(let error):
-            return .failure(error)
-        }
-    }
-}
-// TODO: - Fix this
 // MARK: - Available Login methods
 extension FirebaseLoginImp {
-    public func login(email: String, password: String) async -> Result<AuthUser, LoginError> {
+    public func signIn(email: String, password: String) async -> Result<AuthUser, LoginError> {
         let imp = GoogleLoginProviderImp()
         let result: Result<AuthUser, LoginError> = await imp.login(email: email, password: password)
         return result
     }
 }
 
-// MARK: - User
-extension User {
-    var providerType: Provider {
-        switch providerID {
-        case "password":
-            return .password
-        case "google.com":
-            return .google
-        case "apple.com":
-            return .apple
-        default:
-            return .unknown
+// MARK: - SignIn
+extension FirebaseLoginImp {
+    public func signIn() async -> Result<AuthUser, LoginError> {
+        let result = await loginProvider.login()
+        switch result {
+        case .success(let cred):
+            return await signIn(with: cred)
+        case .failure(let error):
+            return .failure(error)
         }
+    }
+}
+
+// MARK: - logOut
+extension FirebaseLoginImp {
+    public func logOut() throws {
+        try Auth.auth().signOut()
     }
 }

@@ -8,17 +8,13 @@
 import Foundation
 
 // MARK: - LoginEngine
-public protocol LoginService: AnyObject {
-    func getLoggedInUser() async -> Result<AuthUser, LoginError>
-
+public protocol LoginService {
     func createAccount(email: String, password: String) async -> Result<AuthUser, LoginError>
-
     func updateUserDetails(forUserId uid: String, details: [String: AnyHashable]) async -> Bool
 
-    func login(email: String, password: String) async -> Result<AuthUser, LoginError>
-    func signInWithApple() async -> Result<AuthUser, LoginError>
-    func signInWithGoogle() async -> Result<AuthUser, LoginError>
-
+    func getLoggedInUser() async throws -> Result<AuthUser, LoginError>
+    func signIn() async -> Result<AuthUser, LoginError>
+    func signIn(email: String, password: String) async -> Result<AuthUser, LoginError>
     func logOut() throws
 }
 
@@ -29,28 +25,24 @@ public final class LoginImplementer: LoginService {
         self.loginEngine = loginEngine
     }
 
-    public func login(email: String, password: String) async -> Result<AuthUser, LoginError> {
-        await loginEngine.login(email: email, password: password)
+    public func getLoggedInUser() async -> Result<AuthUser, LoginError> {
+        await loginEngine.getLoggedInUser()
+    }
+
+    public func signIn() async -> Result<AuthUser, LoginError> {
+        await loginEngine.signIn()
     }
 
     public func createAccount(email: String, password: String) async -> Result<AuthUser, LoginError> {
         await loginEngine.createAccount(email: email, password: password)
     }
 
+    public func signIn(email: String, password: String) async -> Result<AuthUser, LoginError> {
+        await loginEngine.signIn(email: email, password: password)
+    }
+
     public func updateUserDetails(forUserId uid: String, details: [String: AnyHashable]) async -> Bool {
         await loginEngine.updateUserDetails(forUserId: uid, userDetails: details)
-    }
-
-    public func signInWithApple() async -> Result<AuthUser, LoginError> {
-        await loginEngine.signInWithApple()
-    }
-
-    public func signInWithGoogle() async -> Result<AuthUser, LoginError> {
-        await loginEngine.signInWithGoogle()
-    }
-
-    public func getLoggedInUser() async -> Result<AuthUser, LoginError> {
-        await loginEngine.getLoggedInUser()
     }
 
     public func logOut() throws {

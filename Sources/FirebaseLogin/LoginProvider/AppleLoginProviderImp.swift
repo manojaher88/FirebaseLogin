@@ -10,15 +10,15 @@ import AuthenticationServices
 import CryptoKit
 
 // MARK: - AppleLoginProviderImp
-final class AppleLoginProviderImp: NSObject, LoginProvider {
-    func login<T>(email: String, password: String) async -> Result<T, LoginError> where T : Decodable {
+public final class AppleLoginProviderImp: NSObject, LoginProvider {
+    public func login<T>(email: String, password: String) async -> Result<T, LoginError> where T : Decodable {
         .failure(.loginNotSupported)
     }
     
     private var currentNonce: String?
     private var completion: ((Result<LoginCredential, LoginError>) -> Void)?
 
-    func login() async -> Result<LoginCredential, LoginError> {
+    public func login() async -> Result<LoginCredential, LoginError> {
         do {
             return try await withCheckedThrowingContinuation { [weak self] continuation in
                 guard let self else { return }
@@ -85,7 +85,7 @@ private extension AppleLoginProviderImp {
 
 // MARK: - ASAuthorizationControllerDelegate
 extension AppleLoginProviderImp: ASAuthorizationControllerDelegate {
-    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+    public func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
         if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
             guard let nonce = currentNonce else {
                 completion?(.failure(.unknownError("Invalid state: A login callback was received, but no login request was sent.")))
@@ -107,7 +107,7 @@ extension AppleLoginProviderImp: ASAuthorizationControllerDelegate {
         }
     }
 
-    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+    public func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         print("Sign in with Apple errored: \(error)")
         completion?(.failure(.unknownError(error.localizedDescription)))
     }
@@ -115,7 +115,7 @@ extension AppleLoginProviderImp: ASAuthorizationControllerDelegate {
 
 // MARK: - ASAuthorizationControllerPresentationContextProviding
 extension AppleLoginProviderImp: ASAuthorizationControllerPresentationContextProviding {
-    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+    public func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         ASPresentationAnchor()
     }
 }

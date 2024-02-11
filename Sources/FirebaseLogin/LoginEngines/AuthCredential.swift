@@ -14,7 +14,8 @@ public enum Provider: String, Decodable {
     case unknown = "Unknown"
 }
 
-struct LoginCredential {
+// MARK: - LoginCredential
+public struct LoginCredential {
     let provider: Provider
     let idTokenString: String
     let accessToken: String

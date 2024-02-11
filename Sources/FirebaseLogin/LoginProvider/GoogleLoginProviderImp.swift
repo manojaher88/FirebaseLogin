@@ -9,9 +9,11 @@ import Firebase
 import GoogleSignIn
 
 // MARK: - GoogleLoginProviderImp
-final class GoogleLoginProviderImp: LoginProvider {
+public final class GoogleLoginProviderImp: LoginProvider {
+    public init() { }
+
     // MARK: - login with google
-    func login() async -> Result<LoginCredential, LoginError> {
+    public func login() async -> Result<LoginCredential, LoginError> {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             return .failure(.missingClientId)
         }
@@ -55,7 +57,7 @@ final class GoogleLoginProviderImp: LoginProvider {
 
 // MARK: - login with emailId and password
 extension GoogleLoginProviderImp {
-    func login<T: Decodable>(email: String, password: String) async -> Result<T, LoginError> {
+    public func login<T: Decodable>(email: String, password: String) async -> Result<T, LoginError> {
         // Check if the email is valid
         guard isValidEmail(email) else {
             return .failure(.invalidEmail)

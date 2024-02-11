@@ -8,7 +8,8 @@
 import Foundation
 import FirebaseAuth
 
-protocol LoginProvider {
+// MARK: - LoginProvider
+public protocol LoginProvider {
     func login() async -> Result<LoginCredential, LoginError>
     func login<T: Decodable>(email: String, password: String) async -> Result<T, LoginError>
 }
